@@ -1,0 +1,669 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <vector>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <utility>
+#include <algorithm>
+#include <sstream>
+#include <limits>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+using namespace std;
+
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");  // for Windows
+#else
+    system("clear"); // for Linux/Mac
+#endif
+}
+
+// Function to simulate credits appearing from the bottom and scrolling upward
+void playCredits(const vector<string>& credits, int screenHeight = 20, int delay = 200) {
+    int totalLines = credits.size();
+    
+    // Start with blank lines to simulate starting from the bottom
+    vector<string> screen(screenHeight, "");
+
+    for (int i = 0; i < totalLines + screenHeight; ++i) {
+        clearScreen();
+
+        // Shift lines upward
+        if (i < totalLines) {
+            screen.push_back(credits[i]);
+        } else {
+            screen.push_back(""); // add blank line after all credits are displayed
+        }
+        if (screen.size() > screenHeight) {
+            screen.erase(screen.begin()); // remove the top-most line
+        }
+
+        // Print the current state of the screen
+        for (const string& line : screen) {
+            cout << line << endl;
+        }
+
+        // Delay to control the speed of scrolling
+        this_thread::sleep_for(chrono::milliseconds(delay));
+    }
+}
+
+// Now the main function is void, and it simply runs the credits.
+void runCredits() {
+    // List of credits to be displayed with colors
+    vector<string> credits = {
+        "\033[31m--------------------------------------------------------------------------END OF PROGRAM------------------------------------------------------------------------------\033[0m",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "                                                                                                                                                                     ",
+        "\033[31m----------------------------------------------------------------------------------------------------------------------------------------------------------------------\033[0m",
+        "\033[32m                                                THE JNC CALCULATOR\033[0m",
+        "\033[31m----------------------------------------------------------------------------------------------------------------------------------------------------------------------\033[0m",
+        "",
+        "\033[32m                                                 Final Output\033[0m",
+        "                                                                                                                                                                     ",
+        "                                            in",
+        "                                                                                                                                                                     ",
+        "\033[32m                                                    PRGM551\033[0m",
+        "",
+        "\033[31m                                           ___________ _ Submitted By _ ____________                                                                                 \033[0m",
+        "",
+        "\033[32m                                                Jay Jay Manaba\033[0m",
+        "\033[32m                                            Eidrien Chris Sumagui\033[0m",
+        "\033[32m                                             Neil Albert Sumagui\033[0m",
+        "",
+        "\033[31m                                                Submitted to\033[0m",
+        "",
+        "\033[32m                                            Johndeil Lunar Digno\033[0m",
+        "",
+        "",
+        "",
+        "",
+        "\033[33m                                             Thank you for using the JNC Calculator\033[0m",
+        "",
+        "\033[31m----------------------------------------------------------------------------------------------------------------------------------------------------------------------\033[0m",                                                                                                                                          
+        "\033[32m                                                        THE END\033[0m",
+        "\033[31m----------------------------------------------------------------------------------------------------------------------------------------------------------------------\033[0m",
+    };
+
+    // Play the credits with a scroll delay of 500 milliseconds and screen height of 20
+    playCredits(credits, 20, 500);
+}
+
+void clearConsole() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+void hideCursor() {
+    cout << "\033[?25l";
+}
+
+void showCursor() {
+    cout << "\033[?25h";
+}
+
+void moveCursorTo(int row, int col) {
+    cout << "\033[" << row << ";" << col << "H";
+}
+
+void drawInverseSpiral(int width, int height, int steps, int delay_ms, int total_height) {
+    int x = 1, y = 1;
+    vector<pair<int, int>> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    int dir = 0, segment_length = width, segment_passed = 0;
+    int loading_bar_width = 50, current_progress = 0;
+    vector<char> loading_animation = {'+', '-', 'x', '/'};
+    int animation_index = 0;
+    int dot_count = 0;
+    int dot_update_counter = 0;
+    int dot_update_threshold = 10;
+
+    for (int i = 0; i < steps; ++i) {
+        moveCursorTo(y, x);
+        cout << "\033[36m*\033[0m" << flush;  
+        current_progress = (i * loading_bar_width) / steps;
+        moveCursorTo(total_height + 2, 1);
+       
+        cout << "\r";
+
+        if (current_progress < loading_bar_width) {
+            cout << "Loading please wait   ";
+           
+            for (int d = 0; d < 3; ++d) {
+                cout << "\b \b";  
+            }  
+            if (dot_update_counter >= dot_update_threshold) {
+                dot_count = (dot_count + 1) % 4;  
+              dot_update_counter = 0;
+            }
+           for (int d = 0; d < dot_count; ++d) {
+                cout << ".";  
+            }
+            dot_update_counter++;
+            cout << "\n[";  
+        } else {
+            cout << "Done!\n[";
+        }
+
+       for (int j = 0; j < loading_bar_width; ++j) {
+            if (j < current_progress) {
+                cout << "\033[32m=\033[0m";  
+            } else {
+                cout << " ";
+            }
+        }
+
+        cout << "] \033[33m" << (current_progress * 104) / loading_bar_width << "%\033[0m ";
+       
+        if (current_progress < loading_bar_width) {
+            cout << loading_animation[animation_index] << flush;
+            animation_index = (animation_index + 1) % loading_animation.size();
+        }
+        this_thread::sleep_for(chrono::milliseconds(delay_ms));
+        x += directions[dir].second;
+        y += directions[dir].first;
+        segment_passed++;
+
+        if (segment_passed == segment_length) {
+            dir = (dir + 1) % 4;
+            segment_passed = 0;
+            if (dir == 0 || dir == 2) {
+                width--;
+                segment_length = width;
+            } else {
+                height--;
+                segment_length = height;
+            }
+            segment_length = max(segment_length, 1);
+        }
+        cout.flush();  
+    }
+    moveCursorTo(total_height + 2, 1);
+    cout << "\rDone!                             \n[";
+    for (int j = 0; j < loading_bar_width; ++j) {
+        cout << "\033[32m=\033[0m";  
+    }
+    cout << "] \033[33m100%\033[0m" << endl;  
+}
+
+void runSpiralAnimation() {
+    hideCursor();
+    const int width = 170, height = 6, steps = 1050, delay_ms = 25;
+    int total_height = height + 3;
+    drawInverseSpiral(width, height, steps, delay_ms, total_height);
+    showCursor();
+    cout << endl;
+    cout << "Press Enter to continue...";
+    cin.ignore();  
+    cin.get();  
+}
+
+void typeEffect(const string& text, int delay = 10) {
+    for (char c : text) {
+        cout << c << flush;  
+        this_thread::sleep_for(chrono::milliseconds(delay));  
+    }
+}
+
+enum ValueType {
+    VOLTAGE, CURRENT, RESISTANCE, POWER
+};
+
+struct CalculationHistory {
+    string description;
+    double value;
+    ValueType type;
+};
+
+vector<CalculationHistory> history;
+
+struct SelectedHistoryValue {
+    string description;
+    double value;
+    ValueType type;
+    bool isSet;
+} selectedValue = {"", 0, VOLTAGE, false};  
+
+void addToHistory(const string& description, double value, ValueType type) {
+    history.push_back({description, value, type});
+}
+
+string getTypeAsString(ValueType type) {
+    switch (type) {
+        case VOLTAGE: return "Voltage (V)";
+        case CURRENT: return "Current (A)";
+        case RESISTANCE: return "Resistance (Ω)";
+        case POWER: return "Power (W)";
+        default: return "Unknown";
+    }
+}
+
+void viewHistory() {
+    if (history.empty()) {
+        clearConsole();
+        typeEffect("No history available.\n");
+        cout << "============================\n";
+        typeEffect("Press Enter to continue...");
+        cin.ignore();
+        cin.get();
+        return;
+    }
+    clearConsole();
+    typeEffect("\n--- Calculation History ---\n");
+    for (size_t i = 0; i < history.size(); ++i) {
+        cout << i + 1 << ". " << history[i].description
+             << " = " << history[i].value << " (" << getTypeAsString(history[i].type) << ")" << endl;
+    }
+    typeEffect("\nOptions:\n");
+    typeEffect("1. Choose a value to use for calculation\n");
+    typeEffect("2. Clear history\n");
+    typeEffect("3. Back to menu\n");
+    int choice;
+    cin >> choice;
+
+    switch (choice) {
+        case 1: {
+            clearConsole();
+            typeEffect("\n--- Calculation History ---\n");
+            for (size_t i = 0; i < history.size(); ++i) {
+                cout << i + 1 << ". " << history[i].description
+                     << " = " << history[i].value << " (" << getTypeAsString(history[i].type) << ")" << endl;
+            }
+            int index;
+            typeEffect("\nEnter the number of the value to use: ");
+            cin >> index;
+            if (index > 0 && index <= static_cast<int>(history.size())) {
+                selectedValue.description = history[index - 1].description;
+                selectedValue.value = history[index - 1].value;
+                selectedValue.type = history[index - 1].type;
+                selectedValue.isSet = true;
+                 std::ostringstream valueStream;
+                 valueStream << std::fixed << std::setprecision(2) << selectedValue.value;  
+                 typeEffect("You chose: " + selectedValue.description + " = " + valueStream.str()
+                     + " (" + getTypeAsString(selectedValue.type) + ")\n");
+                typeEffect("You can now use this value for further calculations.\n");
+                cout << "============================\n";
+                typeEffect("Press Enter to continue...");
+                cin.ignore();
+                cin.get();
+            } else {
+                typeEffect("Invalid choice.\n");
+                cout << "============================\n";
+                typeEffect("Press Enter to continue...");
+                cin.ignore();
+                cin.get();
+            }
+            break;
+        }
+        case 2:
+            clearConsole();
+            history.clear();
+            selectedValue = {"", 0, VOLTAGE, false};
+            typeEffect("History cleared.\n");
+            break;
+        case 3:
+            clearConsole();
+            typeEffect("Returning to menu...\n");
+            cout << "============================\n";
+            typeEffect("Press Enter to continue...");
+            cin.ignore();
+            cin.get();
+            break;
+        default:
+            clearConsole();
+            typeEffect("Invalid option.\n");
+            cout << "============================\n";
+            typeEffect("Press Enter to continue...");
+            cin.ignore();
+            cin.get();
+            break;
+    }
+}
+
+double promptToUseStoredValue(const string& prompt, ValueType requiredType) {
+    char useStored;
+    if (selectedValue.isSet && selectedValue.type == requiredType) {
+        std::ostringstream valueStream;
+        valueStream << std::fixed << std::setprecision(2) << selectedValue.value;  
+        typeEffect(prompt + " Would you like to use the stored value ("
+             + selectedValue.description + " = " + valueStream.str()  + ")? (y/n): ");
+        cin >> useStored;
+        if (useStored == 'y' || useStored == 'Y') {
+            return selectedValue.value;
+        }
+    }
+    double value;
+    typeEffect(prompt);
+    cin >> value;
+    return value;
+}
+
+string custom_to_string(double value, int precision) {
+    ostringstream out;
+    out << fixed << setprecision(precision) << value;
+    return out.str();
+}
+
+void setNonBlockingInput(bool enable) {
+    termios t;
+    tcgetattr(STDIN_FILENO, &t);
+    if (enable) {
+        t.c_lflag &= ~ICANON;  
+        t.c_lflag &= ~ECHO;    
+        fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);  
+    } else {
+        t.c_lflag |= ICANON;   
+        t.c_lflag |= ECHO;     
+        fcntl(STDIN_FILENO, F_SETFL, 0);  
+    }
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+}
+
+void updateDotAnimation(int& dot_count, int& dot_update_counter, int dot_update_threshold) {
+    for (int d = 0; d < 3; ++d) {
+        cout << "\b \b";
+    }
+    if (dot_update_counter >= dot_update_threshold) {
+        dot_count = (dot_count + 1) % 4;  
+        dot_update_counter = 0;
+    }
+    cout << "\rEnter to continue";  
+    for (int d = 0; d < dot_count; ++d) {
+        cout << ".";
+    }
+    dot_update_counter++;
+}
+
+void dotsnimation() {
+    int dot_count = 0;
+    int dot_update_counter = 0;
+    int dot_update_threshold = 10; 
+    const int inactivity_threshold = 100; 
+    int inactivity_counter = 0; 
+   
+    setNonBlockingInput(true);  
+
+    while (inactivity_counter < inactivity_threshold) {
+        updateDotAnimation(dot_count, dot_update_counter, dot_update_threshold);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));  
+        std::cout.flush();
+
+        int ch = getchar();
+        if (ch != EOF && ch == '\n') { 
+            break;
+        }
+
+        if (ch == EOF) { 
+            inactivity_counter++;
+        } else { 
+            inactivity_counter = 0;
+        }
+    }
+
+    setNonBlockingInput(false); 
+    std::cout << "\n"; 
+}
+
+int main() {
+    string username;
+    double V = 0, I = 0, R = 0, P = 0;
+    int choice, formulaChoice;
+    clearConsole(); 
+    typeEffect("  ==== Welcome to Ohm's Law Calculator ====\n");
+    typeEffect("  Please log in to access the system.\n");
+    typeEffect("  Username: ");
+    cin >> username;
+    runSpiralAnimation();  
+    clearConsole();
+
+    while (true) {
+        clearConsole();
+        typeEffect("\nHello " + username + "! Welcome to your Ohm's Law Calculator.\n");
+        cout << "========================================";
+        typeEffect("\nSelect an operation to perform:\n");
+        typeEffect("1. Calculate Current (I)\n");
+        typeEffect("2. Calculate Voltage (V)\n");
+        typeEffect("3. Calculate Resistance (R)\n");
+        typeEffect("4. Calculate Power (P)\n");
+        typeEffect("5. View History/Use previous output\n");
+        typeEffect("6. Exit\n");
+        cout << "========================================\n";
+        typeEffect("Enter your choice: ");
+        cin >> choice;
+
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+
+        switch (choice) {
+            case 1: { // Calculate Current
+                clearConsole();
+                typeEffect("\nChoose the formula to calculate current:\n");
+                typeEffect("1. I = P / V (Power / Voltage)\n");
+                typeEffect("2. I = V / R (Voltage / Resistance)\n");
+                typeEffect("3. I = sqrt(P / R) (Square root of Power / Resistance)\n");
+                typeEffect("4. Back\n");
+                cout << "========================================\n";
+                typeEffect("Enter your choice: ");
+                cin >> formulaChoice;
+
+                if (formulaChoice == 1) {
+                    clearConsole();
+                    P = promptToUseStoredValue("Enter Power (P) in Watts: ", POWER);
+                    V = promptToUseStoredValue("Enter Voltage (V) in Volts: ", VOLTAGE);
+                    if (V == 0) { typeEffect("Error: Voltage cannot be zero.\n"); break; }
+                    I = P / V;
+                    addToHistory("I (Current) from P/V", I, CURRENT);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Current (I) = " + custom_to_string(I, 2) + " A\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 2) {
+                    clearConsole();
+                    V = promptToUseStoredValue("Enter Voltage (V) in Volts: ", VOLTAGE);
+                    R = promptToUseStoredValue("Enter Resistance (R) in Ohms: ", RESISTANCE);
+                    if (R == 0) { typeEffect("Error: Resistance cannot be zero.\n"); break; }
+                    I = V / R;
+                    addToHistory("I (Current) from V/R", I, CURRENT);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Current (I) = " + custom_to_string(I, 2) + " A\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 3) {
+                    clearConsole();
+                    P = promptToUseStoredValue("Enter Power (P) in Watts: ", POWER);
+                    R = promptToUseStoredValue("Enter Resistance (R) in Ohms: ", RESISTANCE);
+                    if (R == 0) { typeEffect("Error: Resistance cannot be zero.\n"); break; }
+                    I = sqrt(P / R);
+                    addToHistory("I (Current) from sqrt(P/R)", I, CURRENT);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Current (I) = " + custom_to_string(I, 2) + " A\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                }
+                break;
+            }
+            case 2: { // Calculate Voltage
+                clearConsole();
+                typeEffect("\nChoose the formula to calculate voltage:\n");
+                typeEffect("1. V = I * R (Current * Resistance)\n");
+                typeEffect("2. V = P / I (Power / Current)\n");
+                typeEffect("3. V = sqrt(P * R) (Square root of Power * Resistance)\n");
+                typeEffect("4. Back\n");
+                cout << "========================================\n";
+                typeEffect("Enter your choice: ");
+                cin >> formulaChoice;
+
+                if (formulaChoice == 1) {
+                    clearConsole();
+                    I = promptToUseStoredValue("Enter Current (I) in A: ", CURRENT);
+                    R = promptToUseStoredValue("Enter Resistance (R) in Ohms: ", RESISTANCE);
+                    V = I * R;
+                    addToHistory("V (Voltage) from I*R", V, VOLTAGE);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Voltage (V) = " + custom_to_string(V, 2) + " Volts\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 2) {
+                    clearConsole();
+                    P = promptToUseStoredValue("Enter Power (P) in Watts: ", POWER);
+                    I = promptToUseStoredValue("Enter Current (I) in A: ", CURRENT);
+                    if (I == 0) { typeEffect("Error: Current cannot be zero.\n"); break; }
+                    V = P / I;
+                    addToHistory("V (Voltage) from P/I", V, VOLTAGE);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Voltage (V) = " + custom_to_string(V, 2) + " Volts\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 3) {
+                    clearConsole();
+                    P = promptToUseStoredValue("Enter Power (P) in Watts: ", POWER);
+                    R = promptToUseStoredValue("Enter Resistance (R) in Ohms: ", RESISTANCE);
+                    V = sqrt(P * R);
+                    addToHistory("V (Voltage) from sqrt(P*R)", V, VOLTAGE);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Voltage (V) = " + custom_to_string(V, 2) + " Volts\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                }
+                break;
+            }
+            case 3: { // Calculate Resistance
+                clearConsole();
+                typeEffect("\nChoose the formula to calculate resistance:\n");
+                typeEffect("1. R = V / I (Voltage / Current)\n");
+                typeEffect("2. R = P / I^2 (Power / Current squared)\n");
+                typeEffect("3. R = V^2 / P (Voltage squared / Power)\n");
+                typeEffect("4. Back\n");
+                cout << "========================================\n";
+                typeEffect("Enter your choice: ");
+                cin >> formulaChoice;
+
+                if (formulaChoice == 1) {
+                    clearConsole();
+                    V = promptToUseStoredValue("Enter Voltage (V) in Volts: ", VOLTAGE);
+                    I = promptToUseStoredValue("Enter Current (I) in A: ", CURRENT);
+                    if (I == 0) { typeEffect("Error: Current cannot be zero.\n"); break; }
+                    R = V / I;
+                    addToHistory("R (Resistance) from V/I", R, RESISTANCE);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Resistance (R) = " + custom_to_string(R, 2) + " Ohms\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 2) {
+                    clearConsole();
+                    P = promptToUseStoredValue("Enter Power (P) in Watts: ", POWER);
+                    I = promptToUseStoredValue("Enter Current (I) in A: ", CURRENT);
+                    if (I == 0) { typeEffect("Error: Current cannot be zero.\n"); break; }
+                    R = P / (I * I);
+                    addToHistory("R (Resistance) from P/I^2", R, RESISTANCE);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Resistance (R) = " + custom_to_string(R, 2) + " Ohms\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 3) {
+                    clearConsole();
+                    V = promptToUseStoredValue("Enter Voltage (V) in Volts: ", VOLTAGE);
+                    P = promptToUseStoredValue("Enter Power (P) in Watts: ", POWER);
+                    if (P == 0) { typeEffect("Error: Power cannot be zero.\n"); break; }
+                    R = (V * V) / P;
+                    addToHistory("R (Resistance) from V^2/P", R, RESISTANCE);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Resistance (R) = " + custom_to_string(R, 2) + " Ohms\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                }
+                break;
+            }
+            case 4: { // Calculate Power
+                clearConsole();
+                typeEffect("\nChoose the formula to calculate power:\n");
+                typeEffect("1. P = V * I (Voltage * Current)\n");
+                typeEffect("2. P = I^2 * R (Current squared * Resistance)\n");
+                typeEffect("3. P = V^2 / R (Voltage squared / Resistance)\n");
+                typeEffect("4. Back\n");
+                cout << "========================================\n";
+                typeEffect("Enter your choice: ");
+                cin >> formulaChoice;
+
+                if (formulaChoice == 1) {
+                    clearConsole();
+                    V = promptToUseStoredValue("Enter Voltage (V) in Volts: ", VOLTAGE);
+                    I = promptToUseStoredValue("Enter Current (I) in A: ", CURRENT);
+                    P = V * I;
+                    addToHistory("P (Power) from V*I", P, POWER);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Power (P) = " + custom_to_string(P, 2) + " Watts\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 2) {
+                    clearConsole();
+                    I = promptToUseStoredValue("Enter Current (I) in A: ", CURRENT);
+                    R = promptToUseStoredValue("Enter Resistance (R) in Ohms: ", RESISTANCE);
+                    P = I * I * R;
+                    addToHistory("P (Power) from I^2*R", P, POWER);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Power (P) = " + custom_to_string(P, 2) + " Watts\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                } else if (formulaChoice == 3) {
+                    clearConsole();
+                    V = promptToUseStoredValue("Enter Voltage (V) in Volts: ", VOLTAGE);
+                    R = promptToUseStoredValue("Enter Resistance (R) in Ohms: ", RESISTANCE);
+                    if (R == 0) { typeEffect("Error: Resistance cannot be zero.\n"); break; }
+                    P = (V * V) / R;
+                    addToHistory("P (Power) from V^2/R", P, POWER);
+                    cout << fixed << setprecision(2);
+                    typeEffect("Calculated Power (P) = " + custom_to_string(P, 2) + " Watts\n");
+                    cout << "========================================\n";
+                    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    dotsnimation();
+                }
+                break;
+            }
+            case 5:
+                viewHistory();
+                break;
+            case 6:
+                clearConsole();
+                typeEffect("Exiting program...\n");
+                runCredits();
+                return 0;
+            default:
+                clearConsole();
+                typeEffect("Invalid option. Please try again.\n");
+                cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                dotsnimation();
+                break;
+        }
+    }
+    return 0;
+}
+
+
